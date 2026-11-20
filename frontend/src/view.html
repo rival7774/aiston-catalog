@@ -12,6 +12,7 @@
 <nav aria-label="Хлебные крошки">Каталог @for(c of path();track c.id){<span>/</span><button (click)="select(c.id)">{{c.name}}</button>}</nav>
 <h1>{{path().at(-1)?.name || 'Товары'}}</h1>
 @if(path().length){<p>{{path().at(-1)?.count}} товаров в разделе</p>}
+<input class="search" type="search" aria-label="Поиск товаров в разделе" placeholder="Поиск товаров в разделе" maxlength="64" [value]="search()" (input)="filter($any($event.target).value)">
 <div class="head"><span>Товар</span><span>Цена</span></div>
 <div class="viewport" #viewport (scroll)="scrolled()" tabindex="0" aria-label="Лента товаров">
 @if(pathError()){<footer>{{pathError()}} <button (click)="selected()?select(selected()):select(children().get(0)![0].id)">Повторить</button></footer>}

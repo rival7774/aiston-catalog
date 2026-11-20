@@ -8,7 +8,7 @@ import (
 )
 
 func TestCursorRoundTripAndCategoryScope(t *testing.T) {
-	want := anchor{7, time.Date(2025, 1, 1, 12, 30, 0, 123456000, time.UTC), 123}
+	want := anchor{7, "", time.Date(2025, 1, 1, 12, 30, 0, 123456000, time.UTC), 123}
 	raw, err := json.Marshal(want)
 	if err != nil {
 		t.Fatal(err)

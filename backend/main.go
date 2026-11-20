@@ -17,6 +17,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"unicode/utf8"
 
 	_ "github.com/lib/pq"
 )
@@ -115,6 +116,7 @@ func (a api) nodes(ctx context.Context, id int, path bool) (any, error) {
 
 type anchor struct {
 	Category int
+	Query    string
 	Created  time.Time
 	ID       int
 }
@@ -127,12 +129,16 @@ func decode(s string, id int) (anchor, error) {
 	}
 	return c, nil
 }
-func (a api) products(ctx context.Context, id, limit int, c anchor) (any, error) {
+func (a api) products(ctx context.Context, id, limit int, search string, c anchor) (any, error) {
 	filter := ""
 	args := []any{id, limit + 1}
 	if c.ID != 0 {
 		filter = " AND (created_at,product_id)<($3,$4)"
 		args = append(args, c.Created, c.ID)
+	}
+	if search != "" {
+		args = append(args, "%"+strings.NewReplacer("!", "!!", "%", "!%", "_", "!_").Replace(search)+"%")
+		filter += fmt.Sprintf(" AND name ILIKE $%d ESCAPE '!'", len(args))
 	}
 	rows, err := a.db.QueryContext(ctx, `SELECT p.id,p.category_id,p.name,p.price_kopecks,p.created_at
  FROM (SELECT product_id,created_at FROM feed WHERE ancestor=$1`+filter+`
@@ -153,7 +159,7 @@ func (a api) products(ctx context.Context, id, limit int, c anchor) (any, error)
 	if len(items) > limit {
 		items = items[:limit]
 		last := items[limit-1]
-		b, err := json.Marshal(anchor{id, last.Created, last.ID})
+		b, err := json.Marshal(anchor{id, search, last.Created, last.ID})
 		if err != nil {
 			return nil, err
 		}
@@ -175,6 +181,10 @@ func (a api) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	id := 0
 	kind := "children"
 	if r.URL.Path == "/api/health" {
+		if r.URL.RawQuery != "" {
+			fail(w, 400, "Invalid query parameter")
+			return
+		}
 		if a.db.PingContext(ctx) != nil {
 			fail(w, 503, "Database unavailable")
 			return
@@ -205,10 +215,15 @@ func (a api) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for key, v := range q {
-		if kind != "products" || (key != "cursor" && key != "limit") || len(v) != 1 || v[0] == "" {
+		if kind != "products" || (key != "cursor" && key != "limit" && key != "q") || len(v) != 1 || v[0] == "" {
 			fail(w, 400, "Invalid query parameter")
 			return
 		}
+	}
+	search := strings.TrimSpace(q.Get("q"))
+	if q.Has("q") && (search == "" || len(search) > 256 || strings.IndexByte(search, 0) >= 0 || !utf8.ValidString(search)) {
+		fail(w, 400, "Invalid search text")
+		return
 	}
 	limit := 50
 	var cursor anchor
@@ -222,7 +237,7 @@ func (a api) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if q.Has("cursor") {
 		cursor, err = decode(q.Get("cursor"), id)
-		if err != nil {
+		if err != nil || cursor.Query != search {
 			fail(w, 400, "Invalid cursor")
 			return
 		}
@@ -238,7 +253,7 @@ func (a api) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var data any
 	if err == nil {
 		if kind == "products" {
-			data, err = a.products(ctx, id, limit, cursor)
+			data, err = a.products(ctx, id, limit, search, cursor)
 		} else {
 			data, err = a.nodes(ctx, id, kind == "path")
 		}

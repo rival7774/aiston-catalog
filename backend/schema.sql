@@ -23,6 +23,7 @@ CREATE TABLE feed (
   ancestor integer REFERENCES category,
   created_at timestamptz NOT NULL,
   product_id integer REFERENCES product,
+  name text NOT NULL,
   PRIMARY KEY (ancestor, created_at, product_id)
 );
 CREATE TABLE category_size (
@@ -47,8 +48,10 @@ SELECT i, (i-1)%200+1,
  (ARRAY['Nord','Terra','Forma','Vita','Linea','Mono','Aura'])[(i/800)%7+1] || ' · ' || i,
  9900+(i*773)%1500000, timestamptz '2025-01-01 00:00:00+00' + (i/32)*interval '1 minute'
 FROM generate_series(1,200000) i;
-INSERT INTO feed SELECT a.ancestor,p.created_at,p.id FROM product p
+INSERT INTO feed SELECT a.ancestor,p.created_at,p.id,p.name FROM product p
 JOIN ancestry a ON a.descendant=p.category_id;
 INSERT INTO category_size SELECT c.id,count(f.product_id) FROM category c
 LEFT JOIN feed f ON f.ancestor=c.id GROUP BY c.id;
+CREATE EXTENSION pg_trgm;
+CREATE INDEX feed_search ON feed USING gin(name gin_trgm_ops);
 ANALYZE;

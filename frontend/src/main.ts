@@ -46,10 +46,21 @@ class Catalog implements OnInit, OnDestroy {
   readonly visible = computed(() => this.items().slice(this.start(), this.start()+Math.ceil(this.height()/this.rowHeight)+14));
   @ViewChild('viewport') viewport?: ElementRef<HTMLElement>;
   private request = new AbortController();
+  readonly search = signal('');
+  private timer?: ReturnType<typeof setTimeout>;
+  filter(value: string) {
+    clearTimeout(this.timer);
+    this.search.set(value);
+    this.request.abort();
+    this.busy.set(true);
+    this.items.set([]);
+    this.ended.set(false);
+    this.timer=setTimeout(()=>{if(this.selected()) void this.select(this.selected(),'none');},300);
+  }
   private cursor: string | null = null;
 
   ngOnInit() { void this.initialize(); }
-  ngOnDestroy() { this.request.abort(); }
+  ngOnDestroy() { clearTimeout(this.timer); this.request.abort(); }
 
   load(parent: number): Promise<void> {
     if (this.children().has(parent)) return Promise.resolve();
@@ -89,6 +100,7 @@ class Catalog implements OnInit, OnDestroy {
   }
 
   async select(id: number, mode: 'push'|'replace'|'none'='push') {
+    clearTimeout(this.timer);
     this.request.abort();
     this.request = new AbortController();
     const signal = this.request.signal;
@@ -116,7 +128,10 @@ class Catalog implements OnInit, OnDestroy {
     const signal=this.request.signal;
     this.busy.set(true); this.feedError.set(false);
     try {
-      const page=await get<Page>('/'+this.selected()+'/products'+(this.cursor?'?cursor='+encodeURIComponent(this.cursor):''),signal);
+      const params=new URLSearchParams();
+      if(this.cursor) params.set('cursor',this.cursor);
+      if(this.search().trim()) params.set('q',this.search().trim());
+      const page=await get<Page>('/'+this.selected()+'/products?'+params,signal);
       if (signal.aborted) return;
       this.items.update(items=>items.concat(page.items));
       this.cursor=page.nextCursor; this.ended.set(!this.cursor);
