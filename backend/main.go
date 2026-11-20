@@ -282,6 +282,22 @@ func run() error {
 	return srv.Shutdown(timeout)
 }
 func main() {
+	if len(os.Args) == 2 && os.Args[1] == "health" {
+		client := http.Client{Timeout: 2 * time.Second}
+		port := os.Getenv("API_PORT")
+		if port == "" {
+			port = "8080"
+		}
+		resp, err := client.Get("http://127.0.0.1:" + port + "/api/health")
+		if err != nil {
+			os.Exit(1)
+		}
+		resp.Body.Close()
+		if resp.StatusCode != 200 {
+			os.Exit(1)
+		}
+		return
+	}
 	if err := run(); err != nil {
 		log.Fatal(err)
 	}
