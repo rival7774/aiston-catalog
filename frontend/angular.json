@@ -12,9 +12,7 @@
             "outputPath": "dist",
             "browser": "src/main.ts",
             "index": "src/index.html",
-            "styles": [
-              "src/styles.css"
-            ],
+            "styles": ["src/styles.css"],
             "tsConfig": "tsconfig.json"
           }
         }

@@ -1,26 +1,105 @@
-<header><span class="logo" aria-hidden="true">▥</span><strong>Полка</strong><span class="divider"></span>Каталог товаров</header>
-<main><aside><h2>Категории</h2>
-@if(treeBusy().has(0)){<small>Загрузка категорий…</small>}
-@if(treeErrors().has(0)){<small>Ошибка загрузки <button (click)="initialize()">Повторить</button></small>}
-@for(row of rows();track row.node.id){
-<div class="tree" [class.active]="row.node.id===selected()" [style.padding-left.px]="8+row.depth*13">
-@if(row.node.hasChildren){<button class="toggle" [attr.aria-expanded]="expanded().has(row.node.id)" [attr.aria-label]="'Ветка '+row.node.name" (click)="toggle(row.node)">{{expanded().has(row.node.id)?'⌄':'›'}}</button>}@else{<span class="toggle"></span>}
-<button class="node" (click)="select(row.node.id)">{{row.node.name}}</button><small>{{row.node.count}}</small></div>
-@if(expanded().has(row.node.id) && treeBusy().has(row.node.id)){<small>Загрузка ветки…</small>}
-@if(expanded().has(row.node.id) && treeErrors().has(row.node.id)){<small>Ошибка загрузки <button (click)="load(row.node.id)">Повторить</button></small>}
-}</aside><section>
-<nav aria-label="Хлебные крошки">Каталог @for(c of path();track c.id){<span>/</span><button (click)="select(c.id)">{{c.name}}</button>}</nav>
-<h1>{{path().at(-1)?.name || 'Товары'}}</h1>
-@if(path().length){<p>{{path().at(-1)?.count}} товаров в разделе</p>}
-<input class="search" type="search" aria-label="Поиск товаров в разделе" placeholder="Поиск товаров в разделе" maxlength="64" [value]="search()" (input)="filter($any($event.target).value)">
-<div class="head"><span>Товар</span><span>Цена</span></div>
-<div class="viewport" #viewport (scroll)="scrolled()" tabindex="0" aria-label="Лента товаров">
-@if(pathError()){<footer>{{pathError()}} <button (click)="selected()?select(selected()):select(children().get(0)![0].id)">Повторить</button></footer>}
-@else if(!items().length && !feedError() && !ended()){@for(n of [1,2,3,4,5];track n){<div class="skeleton"><i></i></div>}}
-<div [style.height.px]="items().length*rowHeight" class="space"><div class="window" [style.transform]="'translateY('+start()*rowHeight+'px)'">
-@for(item of visible();track item.id){<article><div><b>{{item.name}}</b><small>{{item.createdAt | date:'dd.MM.yyyy'}}</small></div><strong>{{item.priceKopecks/100 | currency:'RUB':'symbol':'1.2-2':'ru'}}</strong></article>}
-</div></div>
-@if(feedError()){<footer>Не удалось загрузить товары <button (click)="more()">Повторить</button></footer>}
-@if(busy() && items().length){<footer>Загрузка товаров…</footer>}
-@if(ended()){<footer>Конец списка</footer>}
-</div></section></main>
+<header>
+  <span class="logo" aria-hidden="true">▥</span><strong>Полка</strong
+  ><span class="divider"></span>Каталог товаров
+</header>
+<main>
+  <aside>
+    <h2>Категории</h2>
+    @if(treeBusy().has(0)){<small>Загрузка категорий…</small>}
+    @if(treeErrors().has(0)){<small
+      >Ошибка загрузки <button (click)="initialize()">Повторить</button></small
+    >} @for(row of rows();track row.node.id){
+    <div
+      class="tree"
+      [class.active]="row.node.id===selected()"
+      [style.padding-left.px]="8+row.depth*13"
+    >
+      @if(row.node.hasChildren){<button
+        class="toggle"
+        [attr.aria-expanded]="expanded().has(row.node.id)"
+        [attr.aria-label]="'Ветка '+row.node.name"
+        (click)="toggle(row.node)"
+      >
+        {{expanded().has(row.node.id)?'⌄':'›'}}</button
+      >}@else{<span class="toggle"></span>}
+      <button class="node" (click)="select(row.node.id)">
+        {{row.node.name}}</button
+      ><small>{{row.node.count}}</small>
+    </div>
+    @if(expanded().has(row.node.id) && treeBusy().has(row.node.id)){<small
+      >Загрузка ветки…</small
+    >} @if(expanded().has(row.node.id) && treeErrors().has(row.node.id)){<small
+      >Ошибка загрузки
+      <button (click)="load(row.node.id)">Повторить</button></small
+    >} }
+  </aside>
+  <section>
+    <nav aria-label="Хлебные крошки">
+      Каталог @for(c of path();track c.id){<span>/</span
+      ><button (click)="select(c.id)">{{c.name}}</button>}
+    </nav>
+    <h1>{{path().at(-1)?.name || 'Товары'}}</h1>
+    @if(path().length){
+    <p>{{path().at(-1)?.count}} товаров в разделе</p>
+    }
+    <input
+      class="search"
+      type="search"
+      aria-label="Поиск товаров в разделе"
+      placeholder="Поиск товаров в разделе"
+      maxlength="64"
+      [value]="search()"
+      (input)="filter($any($event.target).value)"
+    />
+    <div class="head"><span>Товар</span><span>Цена</span></div>
+    <div
+      class="viewport"
+      #viewport
+      (scroll)="scrolled()"
+      tabindex="0"
+      aria-label="Лента товаров"
+    >
+      @if(pathError()){
+      <footer>
+        {{pathError()}}
+        <button
+          (click)="selected()?select(selected()):select(children().get(0)![0].id)"
+        >
+          Повторить
+        </button>
+      </footer>
+      } @else if(!items().length && !feedError() && !ended()){@for(n of
+      [1,2,3,4,5];track n){
+      <div class="skeleton"><i></i></div>
+      }}
+      <div [style.height.px]="items().length*rowHeight" class="space">
+        <div
+          class="window"
+          [style.transform]="'translateY('+start()*rowHeight+'px)'"
+        >
+          @for(item of visible();track item.id){
+          <article>
+            <div>
+              <b>{{item.name}}</b
+              ><small>{{item.createdAt | date:'dd.MM.yyyy'}}</small>
+            </div>
+            <strong
+              >{{item.priceKopecks/100 |
+              currency:'RUB':'symbol':'1.2-2':'ru'}}</strong
+            >
+          </article>
+          }
+        </div>
+      </div>
+      @if(feedError()){
+      <footer>
+        Не удалось загрузить товары <button (click)="more()">Повторить</button>
+      </footer>
+      } @if(busy() && items().length){
+      <footer>Загрузка товаров…</footer>
+      } @if(ended()){
+      <footer>Конец списка</footer>
+      }
+    </div>
+  </section>
+</main>
