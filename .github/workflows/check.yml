@@ -2,7 +2,11 @@ name: Catalog checks
 on: [push, pull_request]
 jobs:
   catalog:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-24.04-arm, macos-15-intel]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -11,6 +15,13 @@ jobs:
           cache-dependency-path: backend/go.sum
       - run: go test ./...
         working-directory: backend
+      - name: Start Docker on macOS
+        if: runner.os == 'macOS'
+        run: |
+          brew install docker docker-compose colima
+          mkdir -p ~/.docker/cli-plugins
+          ln -sf "$(brew --prefix docker-compose)/bin/docker-compose" ~/.docker/cli-plugins/docker-compose
+          colima start --cpu 2 --memory 5
       - run: docker compose up --build -d --wait
       - run: curl --retry 10 --retry-connrefused -fsS http://localhost:8080/api/health
       - run: python3 checks/catalog.py
